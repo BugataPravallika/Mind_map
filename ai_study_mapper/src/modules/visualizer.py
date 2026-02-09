@@ -22,12 +22,21 @@ class Visualizer:
         colors = ["#FCD5CE", "#FAE1DD", "#F8EDEB", "#E8E8E4", "#D8E2DC", "#ECE4DB", "#FFE5D9", "#FFD7BA"]
         branch_html = ""
         for i, b in enumerate(branches):
-            color = colors[i % len(colors)]
+            diff = b.get('difficulty', 'Medium').lower()
+            diff_color = "#4CAF50" if "easy" in diff else ("#FF9800" if "hard" in diff else "#2196F3")
+            
+            mnemonic = b.get('mnemonic', '')
+            mnemonic_html = f'<div class="mnemonic">💡 <strong>Hook:</strong> {mnemonic}</div>' if mnemonic else ""
+            
             points_html = "".join([f"<li>{p}</li>" for p in b.get("points", [])])
             branch_html += f"""
-            <div class="card" style="background-color: {color};">
-                <h3>{b.get('title', 'Branch')}</h3>
+            <div class="card">
+                <div class="card-header">
+                    <h3>{b.get('title', 'Branch')}</h3>
+                    <span class="badge" style="background-color: {diff_color}">{b.get('difficulty', 'Medium')}</span>
+                </div>
                 <ul>{points_html}</ul>
+                {mnemonic_html}
             </div>
             """
 
@@ -92,30 +101,61 @@ class Visualizer:
             margin-bottom: 50px;
         }}
         .card {{
-            padding: 20px;
+            padding: 25px;
+            border-radius: 12px;
+            background: #FFF;
+            border: 1px solid #E2E8F0;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }}
+        .card:hover {{ transform: translateY(-5px); }}
+        .card-header {{
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #F1F5F9;
+            padding-bottom: 10px;
+        }}
+        .badge {{
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            color: white;
+            font-weight: bold;
+            text-transform: uppercase;
+        }}
+        .mnemonic {{
+            margin-top: 15px;
+            padding: 10px;
+            background: #F8FAFC;
             border-radius: 8px;
-            border: 1px solid rgba(0,0,0,0.05);
+            border-left: 4px solid #64748B;
+            font-size: 0.9em;
+            color: #475569;
         }}
         .card h3 {{
-            margin: 0 0 10px 0;
+            margin: 0;
             font-size: 18px;
+            color: #1E293B;
         }}
-        .card ul {{ padding-left: 20px; margin: 0; }}
+        .card ul {{ padding-left: 20px; margin: 0; color: #334155; }}
         
         .section-break {{
-            border-top: 2px dashed #DDD;
+            border-top: 2px dashed #CBD5E1;
             margin: 50px 0;
             padding-top: 30px;
         }}
-        .quiz-section h2 {{ color: #4D96FF; }}
-        .quiz-item {{ margin-bottom: 20px; padding: 10px; border-left: 4px solid #B5EAD7; }}
+        .quiz-section h2 {{ color: #2563EB; font-size: 24px; }}
+        .quiz-item {{ margin-bottom: 20px; padding: 20px; border-radius: 8px; background: #F0F9FF; border-left: 5px solid #0EA5E9; }}
         
         .answers-section {{
-            background: #F1F5F9;
-            padding: 20px;
-            border-radius: 8px;
+            background: #F8FAFC;
+            padding: 25px;
+            border-radius: 12px;
             margin-top: 40px;
             font-size: 0.9em;
+            border: 1px solid #E2E8F0;
         }}
         
         @media print {{

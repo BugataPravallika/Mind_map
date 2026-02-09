@@ -9,7 +9,18 @@ def test():
     import docx
     test_file = "test_content.docx"
     doc = docx.Document()
-    doc.add_paragraph("Photosynthesis is a process used by plants to convert light energy into chemical energy. " * 20)
+    doc.add_heading("The Science of Photosynthesis", 0)
+    doc.add_paragraph(
+        "Photosynthesis is a complex process used by plants to convert light energy into chemical energy. "
+        "This occurs specifically in the chloroplasts, where chlorophyll absorbs sunlight. "
+        "The light-dependent reactions happen in the thylakoid membranes, producing ATP and NADPH. "
+        "Meanwhile, the Calvin cycle takes place in the stroma to fix carbon dioxide into glucose."
+    )
+    doc.add_paragraph(
+        "Importance: This process is the foundation of the food chain and releases oxygen into the atmosphere. "
+        "Without it, life on Earth as we know it would not exist. Students often find the Calvin cycle difficult "
+        "to memorize because of the complex enzymatic cycles involve."
+    )
     doc.save(test_file)
     
     pipeline = StudyMapPipeline(output_dir="data/test_output")

@@ -114,6 +114,28 @@ class ContentSimplifier:
             return "Low"
         return "Medium"
 
+    def predict_difficulty(self, text: str) -> str:
+        """
+        Predicts difficulty based on concept density and complexity.
+        Returns one of: 🟢 Easy, 🟡 Medium, 🔴 Hard.
+        """
+        if not text: return "🟢 Easy"
+        # Simple heuristic + AI check
+        avg_word_len = sum(len(w) for w in text.split()) / max(1, len(text.split()))
+        
+        prompt = (
+            "Is this concept easy or hard for a high school student? Answer one word: Easy, Medium, or Hard.\n\n"
+            f"Text: {text[:200]}\n\nDifficulty:"
+        )
+        try:
+            out = self.generator(prompt, max_length=6, do_sample=False, num_beams=1)
+            label = out[0]["generated_text"].strip().lower()
+            if "easy" in label: return "🟢 Easy"
+            if "hard" in label: return "🔴 Hard"
+            return "🟡 Medium"
+        except:
+            return "🟡 Medium"
+
     def generate_structured_map(self, text: str) -> dict:
         """
         Generates a strict dictionary structure for the static map.
@@ -135,9 +157,13 @@ class ContentSimplifier:
             "1. Identify the Main Central Topic.\n"
             "2. Identify 4 to 6 Key Branches (Sub-topics).\n"
             "3. For each branch, write 2 concise explanation sentences.\n"
-            "4. Output format MUST be:\n"
+            "4. ADD A MEMORY HOOK (mnemonic or analogy) for each branch.\n"
+            "5. ASSIGN A DIFFICULTY (Easy, Medium, Hard) to each branch.\n"
+            "6. Output format MUST be:\n"
             "   TOPIC: <Main Topic>\n"
             "   BRANCH: <Branch Title>\n"
+            "   DIFFICULTY: <Easy/Medium/Hard>\n"
+            "   MNEMONIC: <Short memory hook or analogy>\n"
             "   - <Explanation 1>\n"
             "   - <Explanation 2>\n"
             "   BRANCH: <Next Branch Title>\n"
@@ -163,7 +189,11 @@ class ContentSimplifier:
                 elif line.upper().startswith("BRANCH:"):
                     if current_branch:
                         result["branches"].append(current_branch)
-                    current_branch = {"title": line.split(":", 1)[1].strip(), "points": []}
+                    current_branch = {"title": line.split(":", 1)[1].strip(), "points": [], "difficulty": "Medium", "mnemonic": ""}
+                elif line.upper().startswith("DIFFICULTY:") and current_branch:
+                    current_branch["difficulty"] = line.split(":", 1)[1].strip()
+                elif line.upper().startswith("MNEMONIC:") and current_branch:
+                    current_branch["mnemonic"] = line.split(":", 1)[1].strip()
                 elif line.startswith("-") and current_branch:
                     current_branch["points"].append(line[1:].strip())
             
@@ -179,9 +209,12 @@ class ContentSimplifier:
                 for i in range(0, len(points), chunk_size):
                     chunk = points[i:i+chunk_size]
                     if chunk:
+                        diff = self.predict_difficulty(" ".join(chunk))
                         result["branches"].append({
                             "title": f"Key Point {i//chunk_size + 1}", 
-                            "points": chunk
+                            "points": chunk,
+                            "difficulty": diff,
+                            "mnemonic": "Think of this as a core building block of the topic."
                         })
             
             return result
