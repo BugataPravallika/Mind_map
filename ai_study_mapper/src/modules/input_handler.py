@@ -1,7 +1,6 @@
 import os
 import pdfplumber
 import docx
-import whisper
 from typing import List, Dict, Union
 
 class InputHandler:
@@ -19,6 +18,7 @@ class InputHandler:
     def _load_whisper(self):
         if self._whisper_model is None:
             print(f"Loading Whisper model ('{self.whisper_model_size}')...")
+            import whisper
             self._whisper_model = whisper.load_model(self.whisper_model_size)
 
     def process_files(self, file_paths: List[str]) -> str:

@@ -33,13 +33,16 @@ class Translator:
         self.model: Optional[MarianMTModel] = None
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    def _ensure_model_loaded(self):
         if self.model_name is None:
-            print(f"No MarianMT model mapping for {self.src_lang}->{self.target_lang}. Translation disabled.")
-            return
+            return False
+            
+        if self.model is not None:
+            return True
 
         if self.model_name in Translator._MODEL_CACHE:
             self.tokenizer, self.model = Translator._MODEL_CACHE[self.model_name]
-            return
+            return True
 
         print(f"Loading Translator model: {self.model_name}...")
         try:
@@ -50,15 +53,17 @@ class Translator:
                 self.model_name, local_files_only=self.prefer_offline
             ).to(self.device)
             Translator._MODEL_CACHE[self.model_name] = (self.tokenizer, self.model)
+            return True
         except Exception as e:
             print(f"Error loading translator model {self.model_name}: {e}")
             self.model = None
+            return False
 
     def translate(self, text_chunks: List[str]) -> List[str]:
         """
         Translates a list of text chunks.
         """
-        if not self.model:
+        if not self._ensure_model_loaded():
             return text_chunks # Return original if no model
         
         translated_chunks = []

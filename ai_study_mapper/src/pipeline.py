@@ -34,7 +34,6 @@ class StudyMapPipeline:
         self.visualizer = Visualizer(output_dir)
         self.planner = StudyPlanner()
         self.voice_generator = VoiceGenerator()
-        self.voice_generator = VoiceGenerator()
         self.language_service = LanguageService(prefer_offline=self.prefer_offline)
         self.quiz_generator = QuizGenerator()
         print("Pipeline Initialized.")
@@ -75,23 +74,31 @@ class StudyMapPipeline:
         # 3. Multi-document topic clustering + simplification
         print("\n--- Step 3: Topic Clustering + Student-Friendly Simplification ---")
         topic_clusters = self.topic_clusterer.cluster(chunks)
-        topics_out = []
-        for tc in topic_clusters:
+        from concurrent.futures import ThreadPoolExecutor
+        
+        def process_topic(tc):
             merged = "\n\n".join(tc.chunks)
             title = " / ".join(tc.top_terms[:3]).strip() if tc.top_terms else tc.topic_id.replace("_", " ").title()
+            
+            # These calls are now thread-safe due to internal Lazy Loading
             summary = self.simplifier.summarize_topic(merged)
-            priority = self.simplifier.score_priority(summary)
-            topics_out.append(
-                {
-                    "topic_id": tc.topic_id,
-                    "title": title,
-                    "priority": priority,
-                    "summary": summary,
-                    "source_chunks": tc.chunk_indices,
-                    "top_terms": tc.top_terms,
-                    "estimated_words": len(merged.split()),
-                }
-            )
+            priority = self.simplifier.predict_importance(summary)
+            
+            return {
+                "topic_id": tc.topic_id,
+                "title": title,
+                "priority": priority,
+                "summary": summary,
+                "source_chunks": list(tc.chunk_indices),
+                "top_terms": tc.top_terms,
+                "estimated_words": len(merged.split()),
+            }
+
+        with ThreadPoolExecutor(max_workers=3) as executor:
+            topics_out = list(executor.map(process_topic, topic_clusters))
+
+        # Sort back to original order if needed, but here cluster order is fine
+        topics_out.sort(key=lambda x: x['topic_id'])
 
         # Unified simplified text for display + downstream processing
         simplified_text = "\n\n".join([f"{t['title']}\n{t['summary']}" for t in topics_out]).strip()

@@ -1,4 +1,3 @@
-from TTS.api import TTS
 import os
 import torch
 
@@ -8,20 +7,25 @@ class VoiceGenerator:
     """
 
     def __init__(self, model_name: str = "tts_models/en/ljspeech/vits"):
-        # Check for GPU
+        self.model_name = model_name
+        self.tts = None
         self.use_gpu = torch.cuda.is_available()
-        print(f"Initializing TTS with model: {model_name} (GPU: {self.use_gpu})")
-        # In a real scenario, might want to delay loading until needed as it's heavy
-        try:
-            self.tts = TTS(model_name=model_name, progress_bar=False, gpu=self.use_gpu)
-        except Exception as e:
-            print(f"Error initializing TTS: {e}")
-            self.tts = None
+
+    def _load_model(self):
+        if self.tts is None:
+            print(f"Loading TTS model: {self.model_name} (GPU: {self.use_gpu})...")
+            try:
+                from TTS.api import TTS
+                self.tts = TTS(model_name=self.model_name, progress_bar=False, gpu=self.use_gpu)
+            except Exception as e:
+                print(f"Error initializing TTS: {e}")
+                self.tts = None
 
     def generate_audio(self, text: str, output_path: str):
         """
         Generates an audio file from text.
         """
+        self._load_model()
         if not self.tts:
             print("TTS model not initialized. Skipping audio generation.")
             return

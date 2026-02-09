@@ -22,13 +22,18 @@ class ContentSimplifier:
     """
 
     def __init__(self, model_name: str = "google/flan-t5-small"):
-        print(f"Loading Simplifier model: {model_name}...")
-        try:
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-            self.model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
-            # Use GPU if available
-            self.device = 0 if torch.cuda.is_available() else -1
-            # Use text2text so we can prompt for "friendly" simplification.
+        self.model_name = model_name
+        self.tokenizer = None
+        self.model = None
+        self.generator = None
+        self.device = 0 if torch.cuda.is_available() else -1
+
+    def _load_model(self):
+        if self.generator is None:
+            print(f"Loading Simplifier model: {self.model_name}...")
+            from transformers import AutoModelForSeq2SeqLM, AutoTokenizer, pipeline
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+            self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name, low_cpu_mem_usage=True)
             self.generator = pipeline(
                 "text2text-generation",
                 model=self.model, 
@@ -36,21 +41,20 @@ class ContentSimplifier:
                 device=self.device
             )
             print(f"Model loaded on device: {'GPU' if self.device == 0 else 'CPU'}")
-        except Exception as e:
-            print(f"Error loading model {model_name}: {e}")
-            raise e
 
     def simplify(self, text_chunks: List[str]) -> str:
         """
-        Simplifies a list of text chunks and returns a combined simplified version.
+        Simplifies a list of text chunks in parallel and returns a combined simplified version.
         """
-        simplified_chunks = []
+        self._load_model()
+        from concurrent.futures import ThreadPoolExecutor
         
-        for i, chunk in enumerate(text_chunks):
-            if len(chunk.strip()) < 50: # Skip very short chunks
-                continue
+        def _simplify_single_chunk(indexed_chunk):
+            idx, chunk = indexed_chunk
+            if len(chunk.strip()) < 50:
+                return ""
                 
-            print(f"Simplifying chunk {i+1}/{len(text_chunks)}...")
+            print(f"Simplifying chunk {idx+1}/{len(text_chunks)}...")
             try:
                 prompt = (
                     "Act as a gentle, encouraging tutor for a stressed student.\n"
@@ -68,19 +72,24 @@ class ContentSimplifier:
                     prompt,
                     max_length=512, 
                     do_sample=False,
-                    num_beams=1, # Faster greedy search
+                    num_beams=1,
                 )
-                simplified_chunks.append(out[0]["generated_text"].strip())
+                return out[0]["generated_text"].strip()
             except Exception as e:
-                print(f"Error simplifying chunk {i}: {e}")
-                simplified_chunks.append(chunk) # Fallback to original
+                print(f"Error simplifying chunk {idx}: {e}")
+                return chunk
 
-        return "\n\n".join(simplified_chunks)
+        # Parallelize to speed up (max 2 workers to prevent memory issues)
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            simplified_results = list(executor.map(_simplify_single_chunk, enumerate(text_chunks)))
+        
+        return "\n\n".join([s for s in simplified_results if s])
 
     def summarize_topic(self, text: str, max_length: int = 180) -> str:
         """
         Creates a compact, student-friendly topic summary.
         """
+        self._load_model()
         # Truncate to roughly 1000 tokens (approx 4000 chars) to prevent OOM
         truncated_text = text[:4000]
         prompt = (
@@ -93,11 +102,12 @@ class ContentSimplifier:
         out = self.generator(prompt, max_length=max_length, do_sample=False, num_beams=1)
         return out[0]["generated_text"].strip()
 
-    def score_priority(self, text: str) -> str:
+    def predict_importance(self, text: str) -> str:
         """
         Best-effort priority scoring using the same pretrained model.
         Returns one of: High, Medium, Low.
         """
+        self._load_model()
         if not text or len(text.strip()) < 30:
             return "Low"
         prompt = (
@@ -119,6 +129,7 @@ class ContentSimplifier:
         Predicts difficulty based on concept density and complexity.
         Returns one of: 🟢 Easy, 🟡 Medium, 🔴 Hard.
         """
+        self._load_model()
         if not text: return "🟢 Easy"
         # Simple heuristic + AI check
         avg_word_len = sum(len(w) for w in text.split()) / max(1, len(text.split()))
@@ -148,6 +159,7 @@ class ContentSimplifier:
           ]
         }
         """
+        self._load_model()
         if not text or len(text.strip()) < 30:
             return {"central_topic": "Topic", "branches": []}
 
