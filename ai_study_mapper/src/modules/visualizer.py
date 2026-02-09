@@ -3,7 +3,7 @@ from typing import List
 
 class Visualizer:
     """
-    Generates premium infographic-style study materials.
+    Generates academic radial spider maps for effective revision.
     """
 
     def __init__(self, output_dir: str = "data/output"):
@@ -13,274 +13,247 @@ class Visualizer:
 
     def generate_static_diagram(self, structure: dict, quiz: List[dict], filename: str = "study_map.html") -> str:
         """
-        Generates a premium, one-page revision mind map with SVG curved connections.
+        Generates a true radial spider map with clean infographic aesthetics.
         """
         topic = structure.get("central_topic", "Study Map")
         branches = structure.get("branches", [])
         
-        cat_colors = {
-            "CORE": "#DBEAFE",      # Light Blue
-            "SUPPORTING": "#EFF6FF", # Even lighter blue
-            "EXAMPLE": "#DCFCE7",    # Green
+        # Color mapping based on user rules
+        colors = {
+            "CENTER": "#1E3A8A",      # Dark Blue
+            "CORE": "#2563EB",        # Blue
+            "SUPPORTING": "#60A5FA",  # Light Blue
+            "EXAMPLE": "#10B981",     # Green
+            "HARD": "#EF4444",        # Red
+            "MEDIUM": "#F59E0B",      # Orange
         }
-        
-        def get_branch_style(difficulty):
-            diff = difficulty.lower()
-            if "hard" in diff: return "border: 2px solid #F87171; background: #FEF2F2;" # Red
-            if "medium" in diff: return "border: 2px solid #60A5FA; background: #EFF6FF;" # Blue
-            return "border: 2px solid #34D399; background: #ECFDF5;" # Green
 
         branch_html = ""
         for i, b in enumerate(branches):
             nodes_html = ""
             for n in b.get("nodes", []):
                 cat = n.get("category", "SUPPORTING").upper()
-                bg = cat_colors.get(cat, "#F3F4F6")
+                bg = colors.get(cat, colors["SUPPORTING"])
                 icon = "🎯" if cat == "CORE" else ("💡" if cat == "SUPPORTING" else "📝")
-                nodes_html += f'<div class="node {cat.lower()}" style="background: {bg}">{icon} {n.get("text", "")}</div>'
+                nodes_html += f'<div class="sub-node" style="background: {bg}">{icon} {n.get("text", "")}</div>'
             
-            style = get_branch_style(b.get("difficulty", "Medium"))
-            # We add a unique wrapper for each branch to handle SVG connection anchoring
+            diff = b.get("difficulty", "Medium").upper()
+            border_color = colors.get(diff, colors["MEDIUM"])
+            
+            # Position logic for radial layout (calculated in JS, but setup here)
             branch_html += f"""
-            <div class="branch-wrapper" id="branch-{i}">
-                <div class="branch-header" style="{style}">
-                    <strong>{b.get('title', 'Branch')}</strong>
-                    <span class="diff-tag">{b.get('difficulty', 'Medium')}</span>
+            <div class="branch-group" id="branch-{i}" data-index="{i}">
+                <div class="branch-node" style="border: 3px solid {border_color}">
+                    <strong>{b.get('title', 'Concept')}</strong>
                 </div>
-                <div class="nodes-list">
+                <div class="sub-nodes-container">
                     {nodes_html}
                 </div>
-                <div class="mnemonic-tag">🧠 {b.get('mnemonic', '')}</div>
             </div>
             """
 
-        quiz_html = "".join([f'<div class="quiz-card"><strong>Q{i+1}:</strong> {q["question"]}</div>' for i, q in enumerate(quiz or [])])
+        # MCQ Section with strict A, B, C, D format
+        quiz_html = ""
+        for i, q in enumerate(quiz or []):
+            options_html = ""
+            letters = ["A", "B", "C", "D"]
+            for idx, opt in enumerate(q.get('options', [])[:4]):
+                options_html += f'<div>{letters[idx]}. {opt}</div>'
+            
+            quiz_html += f"""
+            <div class="mcq-card">
+                <div style="font-weight: 700; margin-bottom: 10px;">Q{i+1}. {q['question']}</div>
+                <div class="mcq-options">{options_html}</div>
+                <div class="mcq-answer">✔ Correct Answer: {q['answer']}</div>
+            </div>
+            """
 
         html_content = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>{topic} - Revision Sheet</title>
+    <title>{topic} Revision Sheet</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap');
         
         body {{
-            font-family: 'Inter', sans-serif;
-            background-color: #F1F5F9;
+            font-family: 'Outfit', sans-serif;
+            background-color: #FFFFFF;
             margin: 0;
-            padding: 40px;
-            display: flex;
-            justify-content: center;
-        }}
-
-        .revision-sheet {{
-            width: 1100px;
-            background: white;
-            padding: 50px;
-            border-radius: 30px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.05);
-            position: relative;
-            z-index: 1;
-        }}
-
-        .header {{
-            text-align: center;
-            margin-bottom: 80px;
-        }}
-
-        .main-topic {{
-            background: #2563EB;
-            color: white;
-            padding: 25px 50px;
-            border-radius: 60px;
-            display: inline-block;
-            font-size: 32px;
-            font-weight: 700;
-            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.4);
-            position: relative;
-            z-index: 10;
-        }}
-
-        .mind-map-grid {{
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 60px 150px;
-            position: relative;
-        }}
-
-        .branch-wrapper {{
-            background: #F8FAFC;
-            padding: 25px;
-            border-radius: 20px;
-            border: 1px solid #E2E8F0;
-            position: relative;
-            z-index: 5;
-        }}
-
-        .branch-header {{
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px 20px;
-            border-radius: 12px;
-            font-size: 20px;
-            margin-bottom: 20px;
-        }}
-
-        .diff-tag {{
-            font-size: 10px;
-            text-transform: uppercase;
-            font-weight: 800;
-            padding: 3px 10px;
-            border-radius: 6px;
-            background: rgba(255,255,255,0.8);
-        }}
-
-        .nodes-list {{
+            padding: 0;
             display: flex;
             flex-direction: column;
-            gap: 12px;
-        }}
-
-        .node {{
-            padding: 10px 16px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 500;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            border: 1px solid rgba(0,0,0,0.05);
-            display: flex;
             align-items: center;
-            gap: 10px;
+            overflow-x: hidden;
         }}
 
-        .node.core {{ border-left: 5px solid #2563EB; font-weight: 600; }}
-        .node.supporting {{ border-left: 5px solid #60A5FA; }}
-        .node.example {{ border-left: 5px solid #10B981; font-style: italic; background: #F0FDF4 !important; }}
-
-        .mnemonic-tag {{
-            margin-top: 20px;
-            font-size: 12px;
-            color: #475569;
-            background: white;
-            padding: 10px;
-            border-radius: 10px;
-            border: 1px dashed #CBD5E1;
-            line-height: 1.4;
+        .map-section {{
+            width: 100vw;
+            height: 800px;
+            position: relative;
+            background: radial-gradient(circle, #fcfcfc 0%, #ffffff 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }}
 
-        #map-connections {{
+        #map-svg {{
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
-            z-index: 2;
+            z-index: 1;
         }}
 
-        .quiz-panel {{
-            margin-top: 80px;
-            padding: 40px;
-            background: #F0F9FF;
-            border-radius: 24px;
-            border-left: 8px solid #0EA5E9;
+        .center-topic {{
+            background: {colors['CENTER']};
+            color: white;
+            padding: 25px 50px;
+            border-radius: 20px;
+            font-size: 28px;
+            font-weight: 700;
+            z-index: 10;
+            box-shadow: 0 10px 30px rgba(30, 58, 138, 0.3);
+            text-align: center;
+            max-width: 300px;
+            cursor: default;
         }}
 
-        .quiz-grid {{
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 25px;
-            margin-top: 30px;
+        .branch-group {{
+            position: absolute;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: transform 0.3s ease;
         }}
 
-        .quiz-card {{
+        .branch-node {{
             background: white;
-            padding: 20px;
-            border-radius: 14px;
-            font-size: 15px;
-            border: 1px solid #E0F2FE;
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            text-align: center;
+            white-space: nowrap;
+        }}
+
+        .sub-nodes-container {{
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+        }}
+
+        .sub-node {{
+            padding: 6px 15px;
+            border-radius: 8px;
+            font-size: 13px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            max-width: 150px;
+            text-align: center;
+            white-space: normal;
+        }}
+
+        .quiz-section {{
+            width: 900px;
+            padding: 50px;
+            background: #F8FAFC;
+            border-top: 2px dashed #E2E8F0;
+        }}
+
+        .mcq-card {{
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            border: 1px solid #E2E8F0;
             box-shadow: 0 4px 6px rgba(0,0,0,0.02);
         }}
 
-        .footer {{
-            text-align: center;
-            margin-top: 60px;
+        .mcq-options {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
+            font-size: 14px;
+            color: #475569;
+        }}
+
+        .mcq-answer {{
             font-size: 13px;
-            color: #64748B;
-            letter-spacing: 0.5px;
+            color: #10B981;
+            font-weight: 600;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #F1F5F9;
         }}
 
         @media print {{
-            body {{ background: white; padding: 0; }}
-            .revision-sheet {{ box-shadow: none; border: none; width: 100%; }}
-            #map-connections {{ display: none; }}
+            .map-section {{ height: auto; padding: 50px 0; }}
+            .sub-node {{ color: black !important; border: 1px solid #ccc; }}
         }}
     </style>
 </head>
 <body>
-    <div class="revision-sheet" id="sheet">
-        <svg id="map-connections"></svg>
-        
-        <div class="header">
-            <div class="main-topic" id="central-node">{topic}</div>
-            <p style="margin-top: 25px; color: #64748B; font-weight: 500;">One-Page Revision Toolkit</p>
-        </div>
+    <div class="map-section" id="canvas">
+        <svg id="map-svg"></svg>
+        <div class="center-topic" id="center-node">{topic}</div>
+        {branch_html}
+    </div>
 
-        <div class="mind-map-grid">
-            {branch_html}
-        </div>
-
-        <div class="quiz-panel">
-            <h3 style="margin: 0; color: #0369A1; font-size: 24px;">✍️ Student Self-Check</h3>
-            <div class="quiz-grid">
-                {quiz_html}
-            </div>
-        </div>
-
-        <div class="footer">
-            Designed for clarity and stress reduction. You've got this! 🌟
-        </div>
+    <div class="quiz-section">
+        <h2 style="margin-top: 0; color: #1E3A8A;">✍️ Final Knowledge Check</h2>
+        <p style="color: #64748B; margin-bottom: 30px;">Strict Multiple Choice Assessment based on the Mind Map above.</p>
+        {quiz_html}
     </div>
 
     <script>
-        function drawConnections() {{
-            const svg = document.getElementById('map-connections');
-            const central = document.getElementById('central-node');
-            const sheet = document.getElementById('sheet');
-            const branches = document.querySelectorAll('.branch-wrapper');
+        function layoutMap() {{
+            const canvas = document.getElementById('canvas');
+            const center = document.getElementById('center-node');
+            const branches = document.querySelectorAll('.branch-group');
+            const svg = document.getElementById('map-svg');
             
-            const sheetRect = sheet.getBoundingClientRect();
-            const centralRect = central.getBoundingClientRect();
+            const radius = 300;
+            const centerX = canvas.offsetWidth / 2;
+            const centerY = canvas.offsetHeight / 2;
             
-            const centerX = centralRect.left + centralRect.width / 2 - sheetRect.left;
-            const centerY = centralRect.top + centralRect.height / 2 - sheetRect.top;
-            
-            svg.innerHTML = ''; // Clear previous
-            
-            branches.forEach(branch => {{
-                const bRect = branch.getBoundingClientRect();
-                const bX = bRect.left + (bRect.left < centralRect.left ? bRect.width : 0) - sheetRect.left;
-                const bY = bRect.top + bRect.height / 2 - sheetRect.top;
+            svg.innerHTML = '';
+
+            branches.forEach((branch, i) => {{
+                const angle = (i * (360 / branches.length)) * (Math.PI / 180);
+                const x = centerX + radius * Math.cos(angle) - branch.offsetWidth / 2;
+                const y = centerY + radius * Math.sin(angle) - branch.offsetHeight / 2;
                 
+                branch.style.left = x + 'px';
+                branch.style.top = y + 'px';
+                
+                // Draw Curved Line
                 const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-                // Create a smooth curve (Cubic Bezier)
-                const controlX = centerX + (bX - centerX) / 2;
+                const bX = x + branch.offsetWidth / 2;
+                const bY = y + branch.offsetHeight / 2;
+                
+                const controlX = centerX + (bX - centerX) * 0.5;
                 const d = `M ${{centerX}} ${{centerY}} C ${{controlX}} ${{centerY}}, ${{controlX}} ${{bY}}, ${{bX}} ${{bY}}`;
                 
                 path.setAttribute("d", d);
-                path.setAttribute("stroke", "#E2E8F0");
-                path.setAttribute("stroke-width", "3");
+                path.setAttribute("stroke", "#CBD5E1");
+                path.setAttribute("stroke-width", "2");
                 path.setAttribute("fill", "none");
                 svg.appendChild(path);
             }});
         }}
-        
-        // Initial draw and redraw on resize
-        window.onload = drawConnections;
-        window.onresize = drawConnections;
-        setTimeout(drawConnections, 500); // Dynamic adjustment
+
+        window.onload = layoutMap;
+        window.onresize = layoutMap;
+        setTimeout(layoutMap, 500);
     </script>
 </body>
 </html>
