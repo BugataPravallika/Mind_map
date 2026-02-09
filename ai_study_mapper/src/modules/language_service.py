@@ -5,7 +5,7 @@ from typing import Optional
 
 from langdetect import DetectorFactory, detect
 
-from modules.translator import Translator
+from .translator import Translator
 
 
 DetectorFactory.seed = 42  # make langdetect deterministic(ish)

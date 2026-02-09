@@ -1,14 +1,16 @@
 import os
 import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '.'))
-
+sys.path.append(os.path.join(os.path.dirname(__file__), 'ai_study_mapper'))
 from ai_study_mapper.src.pipeline import StudyMapPipeline
 
 def test():
-    # Create dummy file if not exists
-    test_file = "test_content.txt"
-    with open(test_file, "w") as f:
-        f.write("Photosynthesis is a process used by plants to convert light energy into chemical energy. " * 20)
+    # Create dummy docx file if not exists
+    import docx
+    test_file = "test_content.docx"
+    doc = docx.Document()
+    doc.add_paragraph("Photosynthesis is a process used by plants to convert light energy into chemical energy. " * 20)
+    doc.save(test_file)
     
     pipeline = StudyMapPipeline(output_dir="data/test_output")
     try:

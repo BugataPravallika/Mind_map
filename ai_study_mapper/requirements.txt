@@ -1,6 +1,6 @@
 pdfplumber==0.10.3
 python-docx==1.1.0
-openai-whisper==20231117
+openai-whisper
 spacy==3.7.2
 networkx==3.2.1
 pyvis==0.3.2
@@ -8,7 +8,7 @@ pyvis==0.3.2
 transformers>=4.57,<5
 torch>=2.2.0
 torchaudio
-sentencepiece==0.1.99
+sentencepiece
 langdetect==1.0.9
 # Coqui TTS requires matplotlib>=3.8.4
 matplotlib>=3.8.4,<3.9
