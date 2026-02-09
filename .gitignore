@@ -1,0 +1,19 @@
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+*.env
+
+# Data & Models (large files)
+data/output/
+models/
+ai_study_mapper/modules/__pycache__/
+ai_study_mapper/src/__pycache__/
+
+# OS generated files
+.DS_Store
+Thumbs.db

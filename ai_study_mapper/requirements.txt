@@ -1,0 +1,23 @@
+pdfplumber==0.10.3
+python-docx==1.1.0
+openai-whisper==20231117
+spacy==3.7.2
+networkx==3.2.1
+pyvis==0.3.2
+# coqui-tts 0.27.5 requires transformers>=4.57
+transformers>=4.57,<5
+torch>=2.2.0
+torchaudio
+sentencepiece==0.1.99
+langdetect==1.0.9
+# Coqui TTS requires matplotlib>=3.8.4
+matplotlib>=3.8.4,<3.9
+# 0.22.0 is not available on Windows/Python 3.10 in PyPI.
+# Use a compatible recent Coqui TTS release.
+coqui-tts[codec]==0.27.5
+scikit-learn
+# Keep numpy <2 for best compatibility on Python 3.10
+numpy>=1.26.4,<2.0
+# Keep TensorBoard pinned and avoid numpy>=2 upgrades
+tensorboard==2.20.0
+sentence-transformers
