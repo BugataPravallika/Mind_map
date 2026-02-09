@@ -149,45 +149,37 @@ class ContentSimplifier:
 
     def generate_structured_map(self, text: str) -> dict:
         """
-        Generates a strict dictionary structure for the static map.
-        Format:
-        {
-          "central_topic": "...",
-          "branches": [
-             {"title": "...", "points": ["...", "..."]},
-             ...
-          ]
-        }
+        Generates a strict dictionary structure for a one-page revision sheet.
         """
         self._load_model()
         if not text or len(text.strip()) < 30:
             return {"central_topic": "Topic", "branches": []}
 
         prompt = (
-            "Create a structured mental map for a revision sheet.\n"
-            "Rules:\n"
-            "1. Identify the Main Central Topic.\n"
-            "2. Identify 4 to 6 Key Branches (Sub-topics).\n"
-            "3. For each branch, write 2 concise explanation sentences.\n"
-            "4. ADD A MEMORY HOOK (mnemonic or analogy) for each branch.\n"
-            "5. ASSIGN A DIFFICULTY (Easy, Medium, Hard) to each branch.\n"
-            "6. Output format MUST be:\n"
-            "   TOPIC: <Main Topic>\n"
-            "   BRANCH: <Branch Title>\n"
-            "   DIFFICULTY: <Easy/Medium/Hard>\n"
-            "   MNEMONIC: <Short memory hook or analogy>\n"
-            "   - <Explanation 1>\n"
-            "   - <Explanation 2>\n"
-            "   BRANCH: <Next Branch Title>\n"
-            "   ...\n\n"
-            f"Content to map:\n{text[:2500]}" # Strictly limit context to fit model memory
+            "You are an AI educational designer. Generate a student-friendly MIND MAP.\n"
+            "Structure Rules:\n"
+            "1. MAIN TOPIC at center.\n"
+            "2. 4-6 main BRANCHES.\n"
+            "3. 3-5 short SUB-NODES per branch (Keywords only).\n"
+            "4. CATEGORIZE sub-nodes: [CORE], [SUPPORTING], or [EXAMPLE].\n"
+            "5. TAG difficulty: Easy, Medium, or Hard.\n"
+            "6. MARK exam-focused points with ⭐.\n\n"
+            "Output format MUST be:\n"
+            "TOPIC: <Main Topic>\n"
+            "BRANCH: <Branch Title>\n"
+            "DIFFICULTY: <Easy/Medium/Hard>\n"
+            "MNEMONIC: <Memory Hook>\n"
+            "- [CORE] <Keyword> ⭐\n"
+            "- [SUPPORTING] <Keyword>\n"
+            "- [EXAMPLE] <Short example>\n"
+            "...\n\n"
+            f"Content: {text[:2500]}"
         )
         
         try:
-            out = self.generator(prompt, max_length=512, do_sample=False, num_beams=1)
+            out = self.generator(prompt, max_length=1024, do_sample=False, num_beams=1)
             raw = out[0]["generated_text"].strip()
             
-            # Simple Parsing Logic
             lines = raw.split('\n')
             result = {"central_topic": "Study Map", "branches": []}
             current_branch = None
@@ -201,39 +193,43 @@ class ContentSimplifier:
                 elif line.upper().startswith("BRANCH:"):
                     if current_branch:
                         result["branches"].append(current_branch)
-                    current_branch = {"title": line.split(":", 1)[1].strip(), "points": [], "difficulty": "Medium", "mnemonic": ""}
+                    current_branch = {"title": line.split(":", 1)[1].strip(), "nodes": [], "difficulty": "Medium", "mnemonic": ""}
                 elif line.upper().startswith("DIFFICULTY:") and current_branch:
                     current_branch["difficulty"] = line.split(":", 1)[1].strip()
                 elif line.upper().startswith("MNEMONIC:") and current_branch:
                     current_branch["mnemonic"] = line.split(":", 1)[1].strip()
                 elif line.startswith("-") and current_branch:
-                    current_branch["points"].append(line[1:].strip())
+                    node_text = line[1:].strip()
+                    cat = "SUPPORTING"
+                    if "[CORE]" in node_text.upper(): cat = "CORE"
+                    elif "[EXAMPLE]" in node_text.upper(): cat = "EXAMPLE"
+                    
+                    clean_text = node_text.replace("[CORE]", "").replace("[SUPPORTING]", "").replace("[EXAMPLE]", "").strip()
+                    current_branch["nodes"].append({"text": clean_text, "category": cat})
             
             if current_branch:
                 result["branches"].append(current_branch)
                 
-            # Fallback if parsing failed (model didn't follow format)
+            # Fallback if parsing failed
             if not result["branches"]:
                 result["central_topic"] = "Main Ideas"
-                # Just treat sentences as points
                 points = [l for l in lines if len(l) > 10]
-                chunk_size = 2
+                chunk_size = 3
                 for i in range(0, len(points), chunk_size):
                     chunk = points[i:i+chunk_size]
                     if chunk:
-                        diff = self.predict_difficulty(" ".join(chunk))
                         result["branches"].append({
-                            "title": f"Key Point {i//chunk_size + 1}", 
-                            "points": chunk,
-                            "difficulty": diff,
-                            "mnemonic": "Think of this as a core building block of the topic."
+                            "title": f"Key Topic {i//chunk_size + 1}", 
+                            "nodes": [{"text": p, "category": "CORE"} for p in chunk],
+                            "difficulty": "Medium",
+                            "mnemonic": "Remember this as a core part of the topic."
                         })
             
             return result
             
         except Exception as e:
             print(f"Error generating map structure: {e}")
-            return {"central_topic": "Error", "branches": [{"title": "Error", "points": ["Could not generate map."]}]}
+            return {"central_topic": "Error", "branches": []}
 
 if __name__ == "__main__":
     # Test stub

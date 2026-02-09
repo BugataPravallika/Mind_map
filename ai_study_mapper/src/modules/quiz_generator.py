@@ -23,11 +23,12 @@ class QuizGenerator:
         
         # 1. Multiple Choice from Branch Meanings
         for b in branches[:3]:
-            if not b.get("points"): continue
+            if not b.get("nodes"): continue
             
-            goal = b["points"][0]
-            # Question: "According to our study of [Title], [Explanation]?"
-            # Or simpler: "Why is [Title] important?"
+            # Pick a core node if possible
+            core_nodes = [n for n in b["nodes"] if n.get("category") == "CORE"]
+            goal_node = core_nodes[0] if core_nodes else b["nodes"][0]
+            goal = goal_node["text"]
             
             # Create distractors from OTHER branch titles
             other_titles = [x["title"] for x in branches if x["title"] != b["title"]]
@@ -44,10 +45,11 @@ class QuizGenerator:
                 "type": "mcq"
             })
 
-        # 2. True/False from specific points
+        # 2. True/False from specific nodes
         for b in branches[3:5]:
-            if not b.get("points"): continue
-            point = b["points"][random.randint(0, len(b["points"])-1)]
+            if not b.get("nodes"): continue
+            node = b["nodes"][random.randint(0, len(b["nodes"])-1)]
+            point = node["text"]
             
             questions.append({
                 "question": f"True or False: **{b['title']}** involves {point}.",
