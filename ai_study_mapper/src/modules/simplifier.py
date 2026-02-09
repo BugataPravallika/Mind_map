@@ -21,7 +21,7 @@ class ContentSimplifier:
     - deterministic (no sampling)
     """
 
-    def __init__(self, model_name: str = "google/flan-t5-base"):
+    def __init__(self, model_name: str = "google/flan-t5-small"):
         print(f"Loading Simplifier model: {model_name}...")
         try:
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -81,14 +81,14 @@ class ContentSimplifier:
         """
         Creates a compact, student-friendly topic summary.
         """
-        if not text or len(text.strip()) < 30:
-            return text.strip()
+        # Truncate to roughly 1000 tokens (approx 4000 chars) to prevent OOM
+        truncated_text = text[:4000]
         prompt = (
             "Summarize this topic for a stressed student.\n"
             "- Keep it simple and friendly\n"
             "- 4 to 7 short bullet points\n"
             "- Include 1 tiny example if it helps\n\n"
-            f"Topic text:\n{text}"
+            f"Topic text:\n{truncated_text}"
         )
         out = self.generator(prompt, max_length=max_length, do_sample=False, num_beams=1)
         return out[0]["generated_text"].strip()
@@ -142,7 +142,7 @@ class ContentSimplifier:
             "   - <Explanation 2>\n"
             "   BRANCH: <Next Branch Title>\n"
             "   ...\n\n"
-            f"Content to map:\n{text[:3000]}" # Limit context to fit model
+            f"Content to map:\n{text[:2500]}" # Strictly limit context to fit model memory
         )
         
         try:

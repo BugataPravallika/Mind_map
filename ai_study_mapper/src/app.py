@@ -9,7 +9,7 @@ from src.pipeline import StudyMapPipeline
 
 @st.cache_resource
 def get_pipeline(offline_mode: bool, model_speed: str):
-    model_name = "google/flan-t5-small" if model_speed == "Fast (Turbo)" else "google/flan-t5-base"
+    model_name = "google/flan-t5-base" if model_speed == "High Quality" else "google/flan-t5-small"
     return StudyMapPipeline(prefer_offline=offline_mode, model_name=model_name)
 
 def main():

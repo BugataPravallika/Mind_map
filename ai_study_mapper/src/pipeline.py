@@ -18,7 +18,7 @@ class StudyMapPipeline:
     Orchestrates the entire AI Study Map pipeline.
     """
 
-    def __init__(self, output_dir: str = "data/output", prefer_offline: bool = False, model_name: str = "google/flan-t5-base"):
+    def __init__(self, output_dir: str = "data/output", prefer_offline: bool = False, model_name: str = "google/flan-t5-small"):
         self.output_dir = output_dir
         self.prefer_offline = prefer_offline
         if not os.path.exists(output_dir):
